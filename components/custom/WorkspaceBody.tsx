@@ -8,6 +8,8 @@ import EmptyWorkspace from './EmptyWorkspace'
 import axios from 'axios'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
+import RepoDialog from './RepoDialog';
+import { boolean } from 'drizzle-orm/gel-core'
 
 
 function WorkspaceBody() {
@@ -45,7 +47,7 @@ function WorkspaceBody() {
                 <div>
                     <></>
                     {!token ? <Button onClick={OnAddrepo}>Setup</Button>
-                        : <Button> + Add Repo</Button>}
+                        : <RepoDialog setRefreshPage={(refresh:boolean) => console.log('refresh')} />}
                 </div>
             </Card>
 
