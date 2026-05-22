@@ -16,7 +16,7 @@ import { Input } from '../ui/input'
 import { useMemo } from 'react'
 import { useContext } from 'react'
 import { UserDetailContext } from '@/context/UserDetailContext'
-type Repo = {
+export type Repo = {
     id: number;
     name: string;
     full_name: string;

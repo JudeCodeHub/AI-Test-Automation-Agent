@@ -1,6 +1,6 @@
 "use client"
 import { UserDetailContext } from '@/context/UserDetailContext'
-import React, { useContext, useEffect } from 'react'
+import { useContext, useEffect } from 'react'
 import Image from 'next/image'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -8,18 +8,38 @@ import EmptyWorkspace from './EmptyWorkspace'
 import axios from 'axios'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
-import RepoDialog from './RepoDialog';
+import RepoDialog, { Repo } from './RepoDialog';
 import { boolean } from 'drizzle-orm/gel-core'
+import UserRepoList from './UserRepoList';
 
-
+export type UserRepo = {
+    id: number;
+    repoId: number;
+    name: string;
+    fullName: string;
+    private_: boolean;
+    htmlUrl: string;
+    description: string;
+    userId: number;
+    owner: string;
+    updated_at: string;
+    language: string;
+    defaultBranch: string;
+}
 function WorkspaceBody() {
     const { userDetail } = useContext(UserDetailContext)
     const router = useRouter()
     const [token, setToken] = useState('')
+    const [userRepoList, setUserRepoList] = useState<UserRepo[]>([])
 
     useEffect(() => {
         GetGithubUserToken();
+
     }, [])
+
+    useEffect(() => {
+        userDetail && GetUserAddedRepoList();
+    }, [userDetail]);
 
 
     const GetGithubUserToken = async () => {
@@ -30,6 +50,12 @@ function WorkspaceBody() {
 
     const OnAddrepo = async () => {
         router.push('/api/github')
+    }
+
+    const GetUserAddedRepoList = async () => {
+        const result = await axios.get('/api/user-repo?userId=' + userDetail?.id)
+        console.log(result.data)
+        setUserRepoList(result.data)
     }
 
     return (
@@ -47,15 +73,18 @@ function WorkspaceBody() {
                 <div>
                     <></>
                     {!token ? <Button onClick={OnAddrepo}>Setup</Button>
-                        : <RepoDialog setRefreshPage={(refresh:boolean) => console.log('refresh')} />}
+                        : <RepoDialog setRefreshPage={(refresh: boolean) => GetUserAddedRepoList()} />}
                 </div>
-            </Card>
 
-            <Card className='mt-10 '>
-                <CardContent>
-                    <EmptyWorkspace />
-                </CardContent>
             </Card>
+            {!userRepoList ?
+                <Card className='mt-10 '>
+                    <CardContent>
+                        <EmptyWorkspace />
+
+                    </CardContent>
+                </Card>
+                : <UserRepoList repoList={userRepoList} />}
         </div>
     )
 }
