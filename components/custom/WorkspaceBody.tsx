@@ -1,0 +1,92 @@
+"use client"
+import { UserDetailContext } from '@/context/UserDetailContext'
+import { useContext, useEffect } from 'react'
+import Image from 'next/image'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
+import EmptyWorkspace from './EmptyWorkspace'
+import axios from 'axios'
+import { useRouter } from 'next/navigation'
+import { useState } from 'react'
+import RepoDialog, { Repo } from './RepoDialog';
+import { boolean } from 'drizzle-orm/gel-core'
+import UserRepoList from './UserRepoList';
+
+export type UserRepo = {
+    id: number;
+    repoId: number;
+    name: string;
+    fullName: string;
+    private_: boolean;
+    htmlUrl: string;
+    description: string;
+    userId: number;
+    owner: string;
+    updated_at: string;
+    language: string;
+    defaultBranch: string;
+}
+function WorkspaceBody() {
+    const { userDetail } = useContext(UserDetailContext)
+    const router = useRouter()
+    const [token, setToken] = useState('')
+    const [userRepoList, setUserRepoList] = useState<UserRepo[]>([])
+
+    useEffect(() => {
+        GetGithubUserToken();
+
+    }, [])
+
+    useEffect(() => {
+        userDetail && GetUserAddedRepoList();
+    }, [userDetail]);
+
+
+    const GetGithubUserToken = async () => {
+        const result = await axios.get('/api/github/token')
+        console.log(result.data.token)
+        setToken(result.data.token)
+    }
+
+    const OnAddrepo = async () => {
+        router.push('/api/github')
+    }
+
+    const GetUserAddedRepoList = async () => {
+        const result = await axios.get('/api/user-repo?userId=' + userDetail?.id)
+        console.log(result.data)
+        setUserRepoList(result.data)
+    }
+
+    return (
+        <div>
+            <div className='flex justify-between items-center'>
+                <h2 className='text-4xl font-medium'>Workspace</h2>
+                <h2 className='text-blue-800 bg-blue-100 px-2 rounded-lg'>Remaining Credits: {userDetail?.credits}</h2>
+            </div>
+
+            <Card className={'flex mt-5 justify-between items-center p-4 border rounded-lg'}>
+                <div className='flex  items-center gap-5'>
+                    <Image src={'/github.png'} alt="gitHub" width={40} height={40}></Image>
+                    <h2 className='text-lg'>Connect Github & Add Repository</h2>
+                </div>
+                <div>
+                    <></>
+                    {!token ? <Button onClick={OnAddrepo}>Setup</Button>
+                        : <RepoDialog setRefreshPage={(refresh: boolean) => GetUserAddedRepoList()} />}
+                </div>
+
+            </Card>
+            {!userRepoList ?
+                <Card className='mt-10 '>
+                    <CardContent>
+                        <EmptyWorkspace />
+
+                    </CardContent>
+                </Card>
+                : <UserRepoList repoList={userRepoList} />}
+        </div>
+    )
+}
+
+export default WorkspaceBody
