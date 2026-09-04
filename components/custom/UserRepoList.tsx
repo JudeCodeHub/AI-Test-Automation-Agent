@@ -53,7 +53,7 @@ type StatusData = {
 }
 
 function UserRepoList({ repoList, setReload }: props) {
-  const { userDetail } = useContext(UserDetailContext);
+  const { userDetail, setUserDetail } = useContext(UserDetailContext);
   const [loading, setLoading] = useState(false);
   const [generateError, setGenerateError] = useState('');
   const [testCaseLoading, setTestCaseLoading] = useState(false);
@@ -74,7 +74,9 @@ function UserRepoList({ repoList, setReload }: props) {
         repo: repo.fullName.split('/').pop() ?? repo.fullName,
         branch: repo.defaultBranch,
       });
-      console.log(result.data);
+      if (typeof result.data.credits === 'number') {
+        setUserDetail((prev: any) => ({ ...prev, credits: result.data.credits }))
+      }
     } catch (error) {
       const message = axios.isAxiosError(error)
         ? error.response?.data?.error ?? error.message

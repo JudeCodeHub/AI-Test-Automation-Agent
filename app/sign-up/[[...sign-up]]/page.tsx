@@ -9,7 +9,12 @@ export default function SignUpPage() {
         <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-linear-to-tr from-green-400 to-emerald-500 shadow-sm">
           <Image src="/logo.svg" alt="" width={22} height={22} aria-hidden="true" />
         </div>
-        <span className="text-base font-semibold tracking-tight text-foreground">AI Test Agent</span>
+        <span
+          style={{ fontFamily: "var(--font-orbitron)" }}
+          className="text-base font-semibold tracking-wide bg-linear-to-r from-green-700 to-lime-500 bg-clip-text text-transparent"
+        >
+          EdgeCase
+        </span>
       </Link>
       <SignUp />
     </main>

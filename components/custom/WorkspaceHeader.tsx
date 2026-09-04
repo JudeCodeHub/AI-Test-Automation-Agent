@@ -11,19 +11,16 @@ function WorkspaceHeader() {
                     <div className="w-10 h-10 rounded-lg bg-linear-to-tr from-green-400 to-emerald-500 flex items-center justify-center shadow-sm shrink-0">
                         <Image src={'/logo.svg'} alt="" width={24} height={24} aria-hidden="true" />
                     </div>
-                    <span className="text-lg font-semibold text-foreground hidden sm:inline">AI Test Agent</span>
+                    <span
+                        style={{ fontFamily: "var(--font-orbitron)" }}
+                        className="text-lg font-semibold tracking-wide hidden sm:inline bg-linear-to-r from-green-700 to-lime-500 bg-clip-text text-transparent"
+                    >
+                        EdgeCase
+                    </span>
                 </Link>
 
-                <div className="shrink-0">
-                    <UserButton
-                        appearance={{
-                            elements: {
-                                avatarBox: 'h-12 w-12',
-                                userButtonPopoverCard: 'shadow-lg border border-border rounded-xl',
-                                userButtonPopoverActionButton: 'hover:bg-accent',
-                            },
-                        }}
-                    />
+                <div className="shrink-0" style={{ transform: 'scale(1.5) translateX(-20px)', transformOrigin: 'right center' }}>
+                    <UserButton />
                 </div>
             </div>
         </header>

@@ -1,7 +1,7 @@
 import { ClerkProvider } from '@clerk/nextjs';
 import "./globals.css";
 import type { Metadata } from "next";
-import { Plus_Jakarta_Sans } from "next/font/google";
+import { Orbitron, Plus_Jakarta_Sans } from "next/font/google";
 import Provider from './provider';
 
 const jakarta = Plus_Jakarta_Sans({
@@ -10,9 +10,15 @@ const jakarta = Plus_Jakarta_Sans({
   display: "swap",
 });
 
+const orbitron = Orbitron({
+  subsets: ["latin"],
+  variable: "--font-orbitron",
+  display: "swap",
+});
+
 export const metadata: Metadata = {
-  title: "AI Test Agent — AI test coverage for your GitHub repos",
-  description: "Connect a GitHub repo and let AI Test Agent read your codebase, draft test cases, and run them in a real browser.",
+  title: "EdgeCase — AI test coverage for your GitHub repos",
+  description: "Connect a GitHub repo and let EdgeCase read your codebase, draft test cases, and run them in a real browser.",
 };
 
 export default function RootLayout({
@@ -41,7 +47,7 @@ export default function RootLayout({
         },
       }}
     >
-      <html lang="en" className={`scroll-smooth ${jakarta.variable}`}>
+      <html lang="en" className={`scroll-smooth ${jakarta.variable} ${orbitron.variable}`}>
         <body style={{ margin: 0, padding: 0 }} className="font-sans">
           <Provider>
             {children}

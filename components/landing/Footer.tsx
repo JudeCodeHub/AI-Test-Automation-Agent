@@ -21,7 +21,12 @@ export default function Footer() {
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-linear-to-tr from-green-400 to-emerald-500 shadow-sm">
               <Image src="/logo.svg" alt="" width={20} height={20} aria-hidden="true" />
             </div>
-            <span className="text-base font-semibold tracking-tight text-(--landing-ink)">AI Test Agent</span>
+            <span
+              style={{ fontFamily: "var(--font-orbitron)" }}
+              className="text-base font-semibold tracking-wide bg-linear-to-r from-green-700 to-lime-500 bg-clip-text text-transparent"
+            >
+              EdgeCase
+            </span>
           </div>
           <p className="mx-auto mt-3 max-w-sm text-sm text-(--landing-ink-muted)">
             AI-generated, real-browser-tested coverage for your GitHub repos.
@@ -54,7 +59,7 @@ export default function Footer() {
 
         <div className="mt-10 border-t border-(--landing-border) pt-6">
           <p className="text-xs text-(--landing-ink-muted)">
-            &copy; {year} AI Test Agent. Built with Next.js, Gemini, and Browserbase.
+            &copy; {year} EdgeCase. Built with Next.js, Gemini, and Browserbase.
           </p>
         </div>
       </div>

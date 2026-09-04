@@ -1,28 +1,31 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useContext } from "react";
+import { UserDetailContext } from "@/context/UserDetailContext";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
+  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { TestCase } from "./UserRepoList";
 import { scriptToPseudocode } from "@/lib/scriptPseudocode";
+import RecordingPlayer from "./RecordingPlayer";
 import {
   Play,
   CheckCircle2,
   XCircle,
   Loader2,
   Terminal,
-  ExternalLink,
   Globe,
   Code,
   Camera,
+  Video,
   PlayCircle,
   ChevronRight,
   Sparkles,
@@ -46,14 +49,9 @@ type RunResult = {
   logs: string[];
   error?: string;
   sessionId?: string;
-  sessionUrl?: string;
   browserbaseScript?: string;
   screenshot?: string;
 };
-
-function sessionReplayUrl(sessionId: string) {
-  return `https://browserbase.com/sessions/${sessionId}`;
-}
 
 function initialScriptPreview(tc: TestCase): string | undefined {
   if (!tc.lastRunAssertions || !tc.status || (tc.status !== "passed" && tc.status !== "failed")) {
@@ -66,6 +64,7 @@ function initialScriptPreview(tc: TestCase): string | undefined {
 }
 
 export default function TestExecutionModal({ isOpen, onClose, testCases, targetDomain }: Props) {
+  const { setUserDetail } = useContext(UserDetailContext);
   const [baseUrl, setBaseUrl] = useState("http://localhost:3000");
   const [currentIdx, setCurrentIdx] = useState<number>(-1);
   const [isExecuting, setIsExecuting] = useState(false);
@@ -88,7 +87,6 @@ export default function TestExecutionModal({ isOpen, onClose, testCases, targetD
           logs: ["Waiting to run..."],
           browserbaseScript: initialScriptPreview(tc),
           sessionId: tc.lastRunSessionId ?? undefined,
-          sessionUrl: tc.lastRunSessionId ? sessionReplayUrl(tc.lastRunSessionId) : undefined,
         };
       });
       setResults(initial);
@@ -145,6 +143,10 @@ export default function TestExecutionModal({ isOpen, onClose, testCases, targetD
 
         const data = res.data;
 
+        if (typeof data.credits === "number") {
+          setUserDetail((prev: any) => ({ ...prev, credits: data.credits }));
+        }
+
         setResults((prev) => ({
           ...prev,
           [tcId]: {
@@ -153,7 +155,6 @@ export default function TestExecutionModal({ isOpen, onClose, testCases, targetD
             logs: data.logs || [],
             browserbaseScript: data.browserbaseScript,
             sessionId: data.sessionId,
-            sessionUrl: data.sessionUrl,
             screenshot: data.screenshot,
             error: data.error,
           },
@@ -373,15 +374,27 @@ export default function TestExecutionModal({ isOpen, onClose, testCases, targetD
                       Expected: {currentSelectedTestCase.expectedResult}
                     </p>
                   </div>
-                  {currentSelectedResult?.sessionUrl && (
-                    <Button
-                      onClick={() => window.open(currentSelectedResult.sessionUrl, "_blank")}
-                      variant="outline"
-                      size="sm"
-                      className="font-medium text-xs gap-1 border-primary/30 text-primary hover:bg-primary/5 shadow-xs shrink-0"
-                    >
-                      <ExternalLink className="h-3.5 w-3.5" /> Watch Recording
-                    </Button>
+                  {currentSelectedResult?.sessionId && (
+                    <Dialog>
+                      <DialogTrigger asChild>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="font-medium text-xs gap-1 border-primary/30 text-primary hover:bg-primary/5 shadow-xs shrink-0"
+                        >
+                          <Video className="h-3.5 w-3.5" /> Watch Recording
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="sm:max-w-2xl">
+                        <DialogHeader>
+                          <DialogTitle className="flex items-center gap-2">
+                            <Video className="h-4 w-4 text-primary" /> {currentSelectedTestCase.title}
+                          </DialogTitle>
+                          <DialogDescription>Recording of this test run.</DialogDescription>
+                        </DialogHeader>
+                        <RecordingPlayer sessionId={currentSelectedResult.sessionId} />
+                      </DialogContent>
+                    </Dialog>
                   )}
                 </div>
 
