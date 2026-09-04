@@ -1,12 +1,12 @@
-import React from 'react'
-import WorkspaceBody from '@/components/custom/WorkspaceBody'
+import React from 'react';
+import WorkspaceBody from '@/components/custom/WorkspaceBody';
 
-function workspace () {
+function workspace() {
   return (
-    <div className='mx-auto max-w-7xl px-6 py-10'>
+    <div className="mx-auto max-w-7xl px-6 py-10">
       <WorkspaceBody />
     </div>
-  )
+  );
 }
 
-export default workspace
+export default workspace;

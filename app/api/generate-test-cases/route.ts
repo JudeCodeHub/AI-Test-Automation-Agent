@@ -1,235 +1,227 @@
-import { NextRequest, NextResponse } from "next/server";
-import { GoogleGenAI, Type } from "@google/genai";
-import { db } from "@/db";
-import { TestCasesTable, users } from "@/db/schema";
-import { cookies } from "next/headers";
-import { and, eq, gte, sql } from "drizzle-orm";
+import { NextRequest, NextResponse } from 'next/server';
+import { GoogleGenAI, Type } from '@google/genai';
+import { db } from '@/db';
+import { TestCasesTable, users } from '@/db/schema';
+import { cookies } from 'next/headers';
+import { and, eq, gte, sql } from 'drizzle-orm';
 
 const ai = new GoogleGenAI({
-    apiKey: process.env.GEMINI_API_KEY!,
+  apiKey: process.env.GEMINI_API_KEY!,
 });
 
 const GENERATE_COST = 50;
 
 const ALLOWED_EXTENSIONS = [
-    ".js",
-    ".jsx",
-    ".ts",
-    ".tsx",
-    ".mjs",
-    ".cjs",
-    ".json",
-    ".md",
-    ".html",
-    ".css",
+  '.js',
+  '.jsx',
+  '.ts',
+  '.tsx',
+  '.mjs',
+  '.cjs',
+  '.json',
+  '.md',
+  '.html',
+  '.css',
 ];
 
 const IMPORTANT_FILES = [
-    "package.json",
-    "next.config",
-    "middleware",
-    "app/",
-    "pages/",
-    "components/",
-    "src/",
-    "lib/",
-    "utils/",
-    "actions/",
-    "api/",
-    "server/",
+  'package.json',
+  'next.config',
+  'middleware',
+  'app/',
+  'pages/',
+  'components/',
+  'src/',
+  'lib/',
+  'utils/',
+  'actions/',
+  'api/',
+  'server/',
 ];
 
 const IGNORE_PATHS = [
-    "node_modules",
-    ".next",
-    "dist",
-    "build",
-    ".git",
-    "coverage",
-    "public/",
-    "package-lock.json",
-    "yarn.lock",
-    "pnpm-lock.yaml",
-    ".png",
-    ".jpg",
-    ".jpeg",
-    ".svg",
-    ".webp",
-    ".mp4",
-    ".mov",
+  'node_modules',
+  '.next',
+  'dist',
+  'build',
+  '.git',
+  'coverage',
+  'public/',
+  'package-lock.json',
+  'yarn.lock',
+  'pnpm-lock.yaml',
+  '.png',
+  '.jpg',
+  '.jpeg',
+  '.svg',
+  '.webp',
+  '.mp4',
+  '.mov',
 ];
 
 function isUsefulFile(path: string) {
-    const isIgnored = IGNORE_PATHS.some((item) => path.includes(item));
+  const isIgnored = IGNORE_PATHS.some((item) => path.includes(item));
 
-    const isAllowedExtension = ALLOWED_EXTENSIONS.some((ext) =>
-        path.endsWith(ext)
-    );
+  const isAllowedExtension = ALLOWED_EXTENSIONS.some((ext) => path.endsWith(ext));
 
-    // Being inside a "well-known" folder is a priority signal (see getRepoTree's
-    // sort), not a hard requirement - otherwise repos that don't follow a
-    // Next.js-style layout (plain static sites, flat repos, etc.) never match
-    // anything and always report "no useful source files".
-    return !isIgnored && isAllowedExtension;
+  // Being inside a "well-known" folder is a priority signal (see getRepoTree's
+  // sort), not a hard requirement - otherwise repos that don't follow a
+  // Next.js-style layout (plain static sites, flat repos, etc.) never match
+  // anything and always report "no useful source files".
+  return !isIgnored && isAllowedExtension;
 }
 
 function isImportantPath(path: string) {
-    return IMPORTANT_FILES.some((item) => path.includes(item));
+  return IMPORTANT_FILES.some((item) => path.includes(item));
 }
 
 async function getRepoTree({
-    owner,
-    repo,
-    branch,
-    githubToken,
+  owner,
+  repo,
+  branch,
+  githubToken,
 }: {
-    owner: string;
-    repo: string;
-    branch: string;
-    githubToken: string;
+  owner: string;
+  repo: string;
+  branch: string;
+  githubToken: string;
 }) {
-    const res = await fetch(
-        `https://api.github.com/repos/${owner}/${repo}/git/trees/${branch}?recursive=1`,
-        {
-            headers: {
-                Authorization: `Bearer ${githubToken}`,
-                Accept: "application/vnd.github+json",
-            },
-        }
-    );
-
-    if (!res.ok) {
-        throw new Error("Failed to fetch GitHub repo tree");
+  const res = await fetch(
+    `https://api.github.com/repos/${owner}/${repo}/git/trees/${branch}?recursive=1`,
+    {
+      headers: {
+        Authorization: `Bearer ${githubToken}`,
+        Accept: 'application/vnd.github+json',
+      },
     }
+  );
 
-    const data = await res.json();
+  if (!res.ok) {
+    throw new Error('Failed to fetch GitHub repo tree');
+  }
 
-    return data.tree
-        .filter((item: any) => item.type === "blob")
-        .filter((item: any) => isUsefulFile(item.path))
-        .sort((a: any, b: any) => Number(isImportantPath(b.path)) - Number(isImportantPath(a.path)))
-        .slice(0, 25);
+  const data = await res.json();
+
+  return data.tree
+    .filter((item: any) => item.type === 'blob')
+    .filter((item: any) => isUsefulFile(item.path))
+    .sort((a: any, b: any) => Number(isImportantPath(b.path)) - Number(isImportantPath(a.path)))
+    .slice(0, 25);
 }
 
 async function readGithubFile({
-    owner,
-    repo,
-    path,
-    branch,
-    githubToken,
+  owner,
+  repo,
+  path,
+  branch,
+  githubToken,
 }: {
-    owner: string;
-    repo: string;
-    path: string;
-    branch: string;
-    githubToken: string;
+  owner: string;
+  repo: string;
+  path: string;
+  branch: string;
+  githubToken: string;
 }) {
-    const res = await fetch(
-        `https://api.github.com/repos/${owner}/${repo}/contents/${path}?ref=${branch}`,
-        {
-            headers: {
-                Authorization: `Bearer ${githubToken}`,
-                Accept: "application/vnd.github+json",
-            },
-        }
-    );
-
-    if (!res.ok) {
-        return null;
+  const res = await fetch(
+    `https://api.github.com/repos/${owner}/${repo}/contents/${path}?ref=${branch}`,
+    {
+      headers: {
+        Authorization: `Bearer ${githubToken}`,
+        Accept: 'application/vnd.github+json',
+      },
     }
+  );
 
-    const data = await res.json();
+  if (!res.ok) {
+    return null;
+  }
 
-    if (!data.content) {
-        return null;
-    }
+  const data = await res.json();
 
-    const decodedContent = Buffer.from(data.content, "base64").toString("utf-8");
+  if (!data.content) {
+    return null;
+  }
 
-    return {
-        path,
-        content: decodedContent.slice(0, 5000),
-    };
+  const decodedContent = Buffer.from(data.content, 'base64').toString('utf-8');
+
+  return {
+    path,
+    content: decodedContent.slice(0, 5000),
+  };
 }
 
 export async function POST(req: NextRequest) {
-    try {
-        const body = await req.json();
-        const cookiesStore = await cookies  ();
-        const githubToken = cookiesStore.get("github_token")?.value;
+  try {
+    const body = await req.json();
+    const cookiesStore = await cookies();
+    const githubToken = cookiesStore.get('github_token')?.value;
 
-        const {
-            userId,
-            repoId,
-            owner,
-            repo,
-            branch = "main",
-        } = body;
+    const { userId, repoId, owner, repo, branch = 'main' } = body;
 
-        if (!userId || !owner || !repo || !githubToken) {
-            return NextResponse.json(
-                {
-                    error: "userId, owner, repo and githubToken are required",
-                },
-                { status: 400 }
-            );
-        }
+    if (!userId || !owner || !repo || !githubToken) {
+      return NextResponse.json(
+        {
+          error: 'userId, owner, repo and githubToken are required',
+        },
+        { status: 400 }
+      );
+    }
 
-        const [user] = await db.select().from(users).where(eq(users.id, userId));
+    const [user] = await db.select().from(users).where(eq(users.id, userId));
 
-        if (!user || user.credits < GENERATE_COST) {
-            return NextResponse.json(
-                { error: `Not enough credits - generating test cases costs ${GENERATE_COST} credits.` },
-                { status: 400 }
-            );
-        }
+    if (!user || user.credits < GENERATE_COST) {
+      return NextResponse.json(
+        { error: `Not enough credits - generating test cases costs ${GENERATE_COST} credits.` },
+        { status: 400 }
+      );
+    }
 
-        // 1. Get repo tree
-        const repoFiles = await getRepoTree({
-            owner,
-            repo,
-            branch,
-            githubToken,
-        });
+    // 1. Get repo tree
+    const repoFiles = await getRepoTree({
+      owner,
+      repo,
+      branch,
+      githubToken,
+    });
 
-        // 2. Read useful files
-        const fileContents = await Promise.all(
-            repoFiles.map((file: any) =>
-                readGithubFile({
-                    owner,
-                    repo,
-                    branch,
-                    path: file.path,
-                    githubToken,
-                })
-            )
-        );
+    // 2. Read useful files
+    const fileContents = await Promise.all(
+      repoFiles.map((file: any) =>
+        readGithubFile({
+          owner,
+          repo,
+          branch,
+          path: file.path,
+          githubToken,
+        })
+      )
+    );
 
-        const validFiles = fileContents.filter(Boolean);
+    const validFiles = fileContents.filter(Boolean);
 
-        if (validFiles.length === 0) {
-            return NextResponse.json(
-                {
-                    error: "No useful source files found in this repository",
-                },
-                { status: 400 }
-            );
-        }
+    if (validFiles.length === 0) {
+      return NextResponse.json(
+        {
+          error: 'No useful source files found in this repository',
+        },
+        { status: 400 }
+      );
+    }
 
-        // 3. Prepare compact repo context
-        const repoContext = validFiles
-            .map(
-                (file: any) => `
+    // 3. Prepare compact repo context
+    const repoContext = validFiles
+      .map(
+        (file: any) => `
 File Path: ${file.path}
 
 File Content:
 ${file.content}
 `
-            )
-            .join("\n\n-------------------------\n\n");
+      )
+      .join('\n\n-------------------------\n\n');
 
-        // 4. Ask Gemini to generate test cases with metadata
-        const prompt = `
+    // 4. Ask Gemini to generate test cases with metadata
+    const prompt = `
 You are an expert QA automation engineer.
 
 Analyze the GitHub repository source code and generate useful small test cases.
@@ -269,149 +261,141 @@ Important rules:
 - Return only valid JSON.
 `;
 
-        const response = await ai.models.generateContent({
-            model: "gemini-3.1-flash-lite",
-            contents: prompt,
-            config: {
-                responseMimeType: "application/json",
-                responseSchema: {
-                    type: Type.OBJECT,
-                    properties: {
-                        testCases: {
-                            type: Type.ARRAY,
-                            items: {
-                                type: Type.OBJECT,
-                                properties: {
-                                    title: {
-                                        type: Type.STRING,
-                                    },
-                                    description: {
-                                        type: Type.STRING,
-                                    },
-                                    type: {
-                                        type: Type.STRING,
-                                        enum: [
-                                            "ui",
-                                            "auth",
-                                            "api",
-                                            "form",
-                                            "integration",
-                                            "edge-case",
-                                        ],
-                                    },
-                                    priority: {
-                                        type: Type.STRING,
-                                        enum: ["low", "medium", "high"],
-                                    },
-                                    targetRoute: {
-                                        type: Type.STRING,
-                                    },
-                                    targetFiles: {
-                                        type: Type.ARRAY,
-                                        items: {
-                                            type: Type.STRING,
-                                        },
-                                    },
-                                    expectedResult: {
-                                        type: Type.STRING,
-                                    },
-                                },
-                                required: [
-                                    "title",
-                                    "description",
-                                    "type",
-                                    "priority",
-                                    "targetRoute",
-                                    "targetFiles",
-                                    "expectedResult",
-                                ],
-                            },
-                        },
+    const response = await ai.models.generateContent({
+      model: 'gemini-3.1-flash-lite',
+      contents: prompt,
+      config: {
+        responseMimeType: 'application/json',
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            testCases: {
+              type: Type.ARRAY,
+              items: {
+                type: Type.OBJECT,
+                properties: {
+                  title: {
+                    type: Type.STRING,
+                  },
+                  description: {
+                    type: Type.STRING,
+                  },
+                  type: {
+                    type: Type.STRING,
+                    enum: ['ui', 'auth', 'api', 'form', 'integration', 'edge-case'],
+                  },
+                  priority: {
+                    type: Type.STRING,
+                    enum: ['low', 'medium', 'high'],
+                  },
+                  targetRoute: {
+                    type: Type.STRING,
+                  },
+                  targetFiles: {
+                    type: Type.ARRAY,
+                    items: {
+                      type: Type.STRING,
                     },
-                    required: ["testCases"],
+                  },
+                  expectedResult: {
+                    type: Type.STRING,
+                  },
                 },
+                required: [
+                  'title',
+                  'description',
+                  'type',
+                  'priority',
+                  'targetRoute',
+                  'targetFiles',
+                  'expectedResult',
+                ],
+              },
             },
-        });
+          },
+          required: ['testCases'],
+        },
+      },
+    });
 
-        const aiResult = JSON.parse(response.text || "{}");
-        const testCases = aiResult.testCases || [];
+    const aiResult = JSON.parse(response.text || '{}');
+    const testCases = aiResult.testCases || [];
 
-        if (!testCases.length) {
-            return NextResponse.json(
-                {
-                    error: "Gemini did not generate any test cases",
-                },
-                { status: 400 }
-            );
-        }
-
-        // 5. Save generated test cases and deduct credits atomically - db.batch()
-        // sends both statements to Neon as one all-or-nothing round trip, so a
-        // crash or timeout between them can't leave test cases inserted without
-        // the user being charged (db.transaction() isn't available on the
-        // neon-http driver this project uses; batch() is the equivalent it
-        // does support). The credit decrement also happens in SQL itself
-        // (not `user.credits - COST` computed here) with a `credits >= COST`
-        // guard, so two concurrent requests can't both pass the earlier check
-        // and race the balance below zero.
-        const [insertedTestCases, updatedUsers] = await db.batch([
-            db
-                .insert(TestCasesTable)
-                .values(
-                    testCases.map((testCase: any) => ({
-                        userId,
-                        repoId,
-                        repoName: repo,
-                        repoOwner: owner,
-                        branch,
-
-                        title: testCase.title,
-                        description: testCase.description,
-                        type: testCase.type,
-                        priority: testCase.priority,
-
-                        targetRoute: testCase.targetRoute,
-                        targetFiles: testCase.targetFiles || [],
-                        expectedResult: testCase.expectedResult,
-
-                        status: "generated",
-                    }))
-                )
-                .returning(),
-            db
-                .update(users)
-                .set({ credits: sql`${users.credits} - ${GENERATE_COST}` })
-                .where(and(eq(users.id, userId), gte(users.credits, GENERATE_COST)))
-                .returning(),
-        ]);
-
-        if (updatedUsers.length === 0) {
-            // Credits were spent by a concurrent request between the check above
-            // and this batch - the test cases below were still inserted, but we
-            // report the shortfall so the client knows the balance didn't hold.
-            return NextResponse.json(
-                { error: `Not enough credits - generating test cases costs ${GENERATE_COST} credits.` },
-                { status: 400 }
-            );
-        }
-
-        return NextResponse.json({
-            success: true,
-            message: "Test cases generated successfully",
-            count: insertedTestCases.length,
-            testCases: insertedTestCases,
-            credits: updatedUsers[0].credits,
-        });
-
-    } catch (error: any) {
-        console.error("Generate test cases error:", error);
-
-        return NextResponse.json(
-            {
-                success: false,
-                error: error.message || "Failed to generate test cases",
-            },
-            { status: 500 }
-        );
+    if (!testCases.length) {
+      return NextResponse.json(
+        {
+          error: 'Gemini did not generate any test cases',
+        },
+        { status: 400 }
+      );
     }
+
+    // 5. Save generated test cases and deduct credits atomically - db.batch()
+    // sends both statements to Neon as one all-or-nothing round trip, so a
+    // crash or timeout between them can't leave test cases inserted without
+    // the user being charged (db.transaction() isn't available on the
+    // neon-http driver this project uses; batch() is the equivalent it
+    // does support). The credit decrement also happens in SQL itself
+    // (not `user.credits - COST` computed here) with a `credits >= COST`
+    // guard, so two concurrent requests can't both pass the earlier check
+    // and race the balance below zero.
+    const [insertedTestCases, updatedUsers] = await db.batch([
+      db
+        .insert(TestCasesTable)
+        .values(
+          testCases.map((testCase: any) => ({
+            userId,
+            repoId,
+            repoName: repo,
+            repoOwner: owner,
+            branch,
+
+            title: testCase.title,
+            description: testCase.description,
+            type: testCase.type,
+            priority: testCase.priority,
+
+            targetRoute: testCase.targetRoute,
+            targetFiles: testCase.targetFiles || [],
+            expectedResult: testCase.expectedResult,
+
+            status: 'generated',
+          }))
+        )
+        .returning(),
+      db
+        .update(users)
+        .set({ credits: sql`${users.credits} - ${GENERATE_COST}` })
+        .where(and(eq(users.id, userId), gte(users.credits, GENERATE_COST)))
+        .returning(),
+    ]);
+
+    if (updatedUsers.length === 0) {
+      // Credits were spent by a concurrent request between the check above
+      // and this batch - the test cases below were still inserted, but we
+      // report the shortfall so the client knows the balance didn't hold.
+      return NextResponse.json(
+        { error: `Not enough credits - generating test cases costs ${GENERATE_COST} credits.` },
+        { status: 400 }
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: 'Test cases generated successfully',
+      count: insertedTestCases.length,
+      testCases: insertedTestCases,
+      credits: updatedUsers[0].credits,
+    });
+  } catch (error: any) {
+    console.error('Generate test cases error:', error);
+
+    return NextResponse.json(
+      {
+        success: false,
+        error: error.message || 'Failed to generate test cases',
+      },
+      { status: 500 }
+    );
+  }
 }
