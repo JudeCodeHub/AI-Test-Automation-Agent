@@ -49,6 +49,15 @@ export const TestCasesTable = pgTable("test_cases", {
   browserbaseScript: text("browserbase_script"),
   status: varchar("status", { length: 100 }).default("generated"),
 
+  // Most recent Browserbase run (screenshots are not persisted here - they're
+  // returned once over the API response, not stored as blobs in the row)
+  lastRunAt: timestamp("last_run_at"),
+  lastRunSessionId: varchar("last_run_session_id", { length: 255 }),
+  lastRunDurationMs: integer("last_run_duration_ms"),
+  lastRunAssertions: jsonb("last_run_assertions").$type<
+    { type: string; selector?: string; expected?: string; passed: boolean; error?: string }[]
+  >().default([]),
+
   createdAt: timestamp("created_at").defaultNow(),
 });
 

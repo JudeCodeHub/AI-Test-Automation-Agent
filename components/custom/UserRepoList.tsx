@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button'
 import { useContext } from 'react'
 import { UserDetailContext } from '@/context/UserDetailContext'
 import axios from 'axios'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import TestCaseList from './TestCaseList'
 import RepoSettings from './RepoSettings'
 
@@ -30,9 +30,19 @@ export type TestCase = {
   targetFiles: string[];
   expectedResult: string;
   repoName: string;
-  repoOwner: string;  
+  repoOwner: string;
   targetDomain: string;
-  
+  status: 'generated' | 'running' | 'passed' | 'failed' | string;
+  lastRunAt: string | null;
+  lastRunSessionId: string | null;
+  lastRunDurationMs: number | null;
+  lastRunAssertions: Array<{
+    type: string;
+    selector?: string;
+    expected?: string;
+    passed: boolean;
+    error?: string;
+  }> | null;
 }
 type StatusData = {
   totalTests: number;
@@ -42,12 +52,6 @@ type StatusData = {
 }
 
 function UserRepoList({ repoList, setReload }: props) {
-  const [statusData, setStatusData] = useState<StatusData>({
-    totalTests: 0,
-    passedTests: 0,
-    failedTests: 0,
-    passRate: 0,
-  });
   const { userDetail } = useContext(UserDetailContext);
   const [loading, setLoading] = useState(false);
   const [testCaseLoading, setTestCaseLoading] = useState(false);
@@ -78,20 +82,24 @@ function UserRepoList({ repoList, setReload }: props) {
     setTestCaseLoading(true);
     setTestCases([]);
     const result = await axios.get(`/api/test-cases?repoId=${repoID}`);
-    console.log(result.data);
-
-    setStatusData({
-      totalTests: result.data.length,
-      passedTests: 0,
-      failedTests: 0,
-      passRate: 0,
-    })
 
     setTestCases(result.data);
     setTestCaseLoading(false);
-
-
   }
+
+  const statusData: StatusData = useMemo(() => {
+    const totalTests = testCases.length;
+    const passedTests = testCases.filter((tc) => tc.status === 'passed').length;
+    const failedTests = testCases.filter((tc) => tc.status === 'failed').length;
+    const ranTests = passedTests + failedTests;
+
+    return {
+      totalTests,
+      passedTests,
+      failedTests,
+      passRate: ranTests === 0 ? 0 : Math.round((passedTests / ranTests) * 100),
+    };
+  }, [testCases]);
 
   return (
     <div className='mt-10 '>
@@ -161,7 +169,11 @@ function UserRepoList({ repoList, setReload }: props) {
 
                 </div>
                 {!testCaseLoading && testCases.length > 0
-                  && <TestCaseList testCases={testCases} onReload={(repoId: number) => GetTestCases(repoId)} />}
+                  && <TestCaseList
+                    testCases={testCases}
+                    setTestCases={setTestCases}
+                    targetDomain={repo?.targetDomain}
+                    onReload={(repoId: number) => GetTestCases(repoId)} />}
 
                 {testCaseLoading ?
                   <h2 className='flex gap-2 items-center'><Loader2Icon className='animate-spin' /> Please wait...</h2>
