@@ -3,6 +3,11 @@ import { chromium } from 'playwright-core';
 import { db } from '@/db';
 import { TestCasesTable, users } from '@/db/schema';
 import { and, eq, gte, sql } from 'drizzle-orm';
+
+// Gemini generation + a real Browserbase session + retried steps can easily
+// take longer than a serverless default (10s on Vercel Hobby). Needs a plan
+// that allows this duration - see deployment notes.
+export const maxDuration = 60;
 import { browserbase, BROWSERBASE_PROJECT_ID, sessionReplayUrl } from '@/lib/browserbase';
 import {
   extractPageSummary,
