@@ -1,14 +1,14 @@
-"use client"
+'use client';
 
-import { motion, useReducedMotion } from "framer-motion"
+import { motion, useReducedMotion } from 'framer-motion';
 
 /** Draws itself left-to-right once it scrolls into view. */
 export default function ConnectorLine() {
-  const reduceMotion = useReducedMotion()
+  const reduceMotion = useReducedMotion();
 
   return (
     <svg
-      className="pointer-events-none absolute left-0 top-20 z-0 hidden h-1 w-full md:block"
+      className="pointer-events-none absolute top-20 left-0 z-0 hidden h-1 w-full md:block"
       viewBox="0 0 100 4"
       preserveAspectRatio="none"
       aria-hidden="true"
@@ -24,9 +24,9 @@ export default function ConnectorLine() {
         strokeLinecap="round"
         initial={{ pathLength: 0, opacity: 0 }}
         whileInView={{ pathLength: 1, opacity: 1 }}
-        viewport={{ once: true, margin: "-100px" }}
-        transition={{ duration: reduceMotion ? 0.01 : 1.1, ease: "easeInOut" }}
+        viewport={{ once: true, margin: '-100px' }}
+        transition={{ duration: reduceMotion ? 0.01 : 1.1, ease: 'easeInOut' }}
       />
     </svg>
-  )
+  );
 }

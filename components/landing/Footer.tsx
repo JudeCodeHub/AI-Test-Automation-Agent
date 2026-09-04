@@ -1,29 +1,30 @@
-import Image from "next/image"
-import { Github } from "lucide-react"
-import Reveal from "./Reveal"
+import Image from 'next/image';
+import { Github } from 'lucide-react';
+import Reveal from './Reveal';
 
 const links = [
-  { href: "#how-it-works", label: "How it works" },
-  { href: "#features", label: "Features" },
-  { href: "#pricing", label: "Pricing" },
-]
+  { href: '#how-it-works', label: 'How it works' },
+  { href: '#features', label: 'Features' },
+  { href: '#pricing', label: 'Pricing' },
+];
 
-const footerLinkClass = "text-sm text-(--landing-ink-muted) transition-colors hover:text-(--landing-ink)"
+const footerLinkClass =
+  'text-sm text-(--landing-ink-muted) transition-colors hover:text-(--landing-ink)';
 
 export default function Footer() {
-  const year = new Date().getFullYear()
+  const year = new Date().getFullYear();
 
   return (
     <footer className="border-t border-(--landing-border) bg-(--landing-bg-raised)">
-      <div className="max-w-7xl mx-auto px-6 py-16 text-center">
+      <div className="mx-auto max-w-7xl px-6 py-16 text-center">
         <Reveal>
           <div className="flex items-center justify-center gap-2.5">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-linear-to-tr from-green-400 to-emerald-500 shadow-sm">
               <Image src="/logo.svg" alt="" width={20} height={20} aria-hidden="true" />
             </div>
             <span
-              style={{ fontFamily: "var(--font-orbitron)" }}
-              className="text-base font-semibold tracking-wide bg-linear-to-r from-green-700 to-lime-500 bg-clip-text text-transparent"
+              style={{ fontFamily: 'var(--font-orbitron)' }}
+              className="bg-linear-to-r from-green-700 to-lime-500 bg-clip-text text-base font-semibold tracking-wide text-transparent"
             >
               EdgeCase
             </span>
@@ -34,7 +35,10 @@ export default function Footer() {
         </Reveal>
 
         <Reveal delay={0.1}>
-          <nav aria-label="Footer" className="mt-10 flex flex-wrap items-center justify-center gap-x-8 gap-y-3">
+          <nav
+            aria-label="Footer"
+            className="mt-10 flex flex-wrap items-center justify-center gap-x-8 gap-y-3"
+          >
             {links.map((link) => (
               <a key={link.href} href={link.href} className={footerLinkClass}>
                 {link.label}
@@ -64,5 +68,5 @@ export default function Footer() {
         </div>
       </div>
     </footer>
-  )
+  );
 }

@@ -1,97 +1,126 @@
-import React, { useState } from 'react'
+import React, { useState } from 'react';
 import { TestCase } from './UserRepoList';
-import { Checkbox } from '@/components/ui/checkbox'
-import { Badge } from '@/components/ui/badge'
-import { CheckCircle2, Clock, Loader2, Play, RefreshCw, XCircle } from 'lucide-react'
-import { Button } from '../ui/button'
+import { Checkbox } from '@/components/ui/checkbox';
+import { Badge } from '@/components/ui/badge';
+import { CheckCircle2, Clock, Eye, Loader2, Play, RefreshCw, XCircle } from 'lucide-react';
+import { Button } from '../ui/button';
 import TestCaseSettingDialog from './TestCaseSettingDialog';
 import RunResultDialog from './RunResultDialog';
 import TestExecutionModal from './TestExecutionModal';
 
 type Props = {
-  testCases: TestCase[]
-  setTestCases: React.Dispatch<React.SetStateAction<TestCase[]>>
-  targetDomain?: string
-  onReload: any
-}
+  testCases: TestCase[];
+  setTestCases: React.Dispatch<React.SetStateAction<TestCase[]>>;
+  targetDomain?: string;
+  onReload: any;
+};
 
 export default function TestCaseList({ testCases, setTestCases, targetDomain, onReload }: Props) {
+  const [selectedTestCases, setSelectedTestCases] = useState<TestCase[]>([]);
+  const [showExecutionModal, setShowExecutionModal] = useState(false);
 
-  const [selectedTestCases, setSelectedTestCases] = useState<TestCase[]>([])
-  const [showExecutionModal, setShowExecutionModal] = useState(false)
-
-  const handleSelectedTestCase = (checked: boolean | "indeterminate" | string, testCase: TestCase) => {
+  const handleSelectedTestCase = (
+    checked: boolean | 'indeterminate' | string,
+    testCase: TestCase
+  ) => {
     if (checked) {
-      setSelectedTestCases((prev) => [...prev, testCase])
+      setSelectedTestCases((prev) => [...prev, testCase]);
     } else {
-      setSelectedTestCases((prev) => prev.filter((item) => item.id !== testCase.id))
+      setSelectedTestCases((prev) => prev.filter((item) => item.id !== testCase.id));
     }
-  }
+  };
 
   const handleCloseExecutionModal = () => {
-    setShowExecutionModal(false)
-    onReload(testCases[0]?.repoId)
-  }
+    setShowExecutionModal(false);
+    onReload(testCases[0]?.repoId);
+  };
 
   const StatusBadge = ({ testCase }: { testCase: TestCase }) => {
-    const status = testCase.status ?? 'generated'
-    const content = (() => {
-      if (status === 'running') {
-        return <Badge variant={'secondary'} className='w-24 justify-center gap-1'><Loader2 className='h-3 w-3 animate-spin' />Running</Badge>
-      }
-      if (status === 'passed') {
-        return <Badge className='w-24 justify-center gap-1 bg-green-600 hover:bg-green-600/80'><CheckCircle2 className='h-3 w-3' />Passed</Badge>
-      }
-      if (status === 'failed') {
-        return <Badge variant={'destructive'} className='w-24 justify-center gap-1 rounded-lg'><XCircle className='h-3 w-3' />Failed</Badge>
-      }
-      return <Badge variant={'secondary'} className='w-24 justify-center gap-1 rounded-lg'><Clock className='h-3 w-3' />Pending</Badge>
-    })()
-
-    if (status === 'passed' || status === 'failed') {
+    const status = testCase.status ?? 'generated';
+    if (status === 'running') {
       return (
-        <RunResultDialog testCase={testCase}>
-          <button type='button' className='cursor-pointer'>{content}</button>
-        </RunResultDialog>
-      )
+        <Badge variant={'secondary'} className="w-24 justify-center gap-1">
+          <Loader2 className="h-3 w-3 animate-spin" />
+          Running
+        </Badge>
+      );
     }
-    return content
-  }
+    if (status === 'passed') {
+      return (
+        <Badge className="w-24 justify-center gap-1 bg-green-600 hover:bg-green-600/80">
+          <CheckCircle2 className="h-3 w-3" />
+          Passed
+        </Badge>
+      );
+    }
+    if (status === 'failed') {
+      return (
+        <Badge variant={'destructive'} className="w-24 justify-center gap-1 rounded-lg">
+          <XCircle className="h-3 w-3" />
+          Failed
+        </Badge>
+      );
+    }
+    return (
+      <Badge variant={'secondary'} className="w-24 justify-center gap-1 rounded-lg">
+        <Clock className="h-3 w-3" />
+        Pending
+      </Badge>
+    );
+  };
+
+  const ViewResultButton = ({ testCase }: { testCase: TestCase }) => {
+    const status = testCase.status ?? 'generated';
+    if (status !== 'passed' && status !== 'failed') return null;
+
+    return (
+      <RunResultDialog testCase={testCase}>
+        <Button size={'icon'} variant={'outline'} title="View result" aria-label="View result">
+          <Eye className="h-4 w-4" />
+        </Button>
+      </RunResultDialog>
+    );
+  };
 
   return (
-    <div >
-      <div className='flex items-center justify-between'>
-        <h2 className='font-medium mt-2 text-primary'>Generated Test Cases</h2>
-        <Button size={'sm'} onClick={() => onReload(testCases[0]?.repoId)}><RefreshCw className='h-3 w-3 mr-1' />Refresh</Button>
+    <div>
+      <div className="flex items-center justify-between">
+        <h2 className="text-primary mt-2 font-medium">Generated Test Cases</h2>
+        <Button size={'sm'} onClick={() => onReload(testCases[0]?.repoId)}>
+          <RefreshCw className="mr-1 h-3 w-3" />
+          Refresh
+        </Button>
       </div>
-      <div className=' border rounded-md mt-2 '>
+      <div className="mt-2 rounded-md border">
         {testCases.map((testCase, index) => (
-          <div key={index} className='p-4 border-b flex items-center justify-between'>
-            <div className='flex items-center gap-3'>
+          <div key={index} className="flex items-center justify-between border-b p-4">
+            <div className="flex items-center gap-3">
               <Checkbox
                 disabled={testCase.status === 'running'}
                 checked={selectedTestCases.some((item) => item.id === testCase?.id)}
-                onCheckedChange={(checked) => handleSelectedTestCase(checked, testCase)} />
+                onCheckedChange={(checked) => handleSelectedTestCase(checked, testCase)}
+              />
               <div>
                 <h2>{testCase?.title}</h2>
-                <p className='text-xs text-gray-900'>{testCase?.description}</p>
+                <p className="text-xs text-gray-900">{testCase?.description}</p>
               </div>
             </div>
 
-            <div className='gap-4 flex items-center'>
+            <div className="flex items-center gap-4">
               <Badge variant={'secondary'}>{testCase?.type}</Badge>
               <StatusBadge testCase={testCase} />
+              <ViewResultButton testCase={testCase} />
               <TestCaseSettingDialog testCase={testCase} setReload={onReload} />
             </div>
           </div>
         ))}
-        <div className='p-4 flex items-center justify-between bg-gray-100'>
-          <h2 className='font-medium text-gray-950'>Run Selected Test Cases</h2>
+        <div className="flex items-center justify-between bg-gray-100 p-4">
+          <h2 className="font-medium text-gray-950">Run Selected Test Cases</h2>
           <Button
             disabled={selectedTestCases.length === 0 || !targetDomain}
             onClick={() => setShowExecutionModal(true)}
           >
-            <Play className='h-4 w-4 mr-2' />
+            <Play className="mr-2 h-4 w-4" />
             Run
           </Button>
         </div>
@@ -104,5 +133,5 @@ export default function TestCaseList({ testCases, setTestCases, targetDomain, on
         targetDomain={targetDomain}
       />
     </div>
-  )
+  );
 }
