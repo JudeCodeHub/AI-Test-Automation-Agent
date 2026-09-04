@@ -3,7 +3,7 @@ import { UserDetailContext } from '@/context/UserDetailContext'
 import { useContext, useEffect } from 'react'
 import Image from 'next/image'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
+import { Coins, Github } from 'lucide-react'
 import EmptyWorkspace from './EmptyWorkspace'
 import axios from 'axios'
 import { useRouter } from 'next/navigation'
@@ -32,7 +32,7 @@ function WorkspaceBody() {
     const { userDetail } = useContext(UserDetailContext)
     const router = useRouter()
     const [token, setToken] = useState('')
-    const [userRepoList, setUserRepoList] = useState<UserRepo[]>([])
+    const [userRepoList, setUserRepoList] = useState<UserRepo[] | null>(null)
 
     useEffect(() => {
         GetGithubUserToken();
@@ -46,7 +46,6 @@ function WorkspaceBody() {
 
     const GetGithubUserToken = async () => {
         const result = await axios.get('/api/github/token')
-        console.log(result.data.token)
         setToken(result.data.token)
     }
 
@@ -56,37 +55,40 @@ function WorkspaceBody() {
 
     const GetUserAddedRepoList = async () => {
         const result = await axios.get('/api/user-repo?userId=' + userDetail?.id)
-        console.log(result.data)
         setUserRepoList(result.data)
     }
 
     return (
         <div>
             <div className='flex justify-between items-center'>
-                <h2 className='text-4xl font-medium'>Workspace</h2>
-                <h2 className='text-blue-800 bg-blue-100 px-2 rounded-lg'>Remaining Credits: {userDetail?.credits}</h2>
+                <h2 className='text-4xl font-semibold tracking-tight text-foreground'>Workspace</h2>
+                <span className='inline-flex items-center gap-1.5 text-sm font-medium text-primary bg-accent px-3 py-1.5 rounded-full'>
+                    <Coins className='h-4 w-4' />
+                    {userDetail?.credits ?? '—'} credits
+                </span>
             </div>
 
-            <Card className={'flex mt-5 justify-between items-center p-4 border rounded-lg'}>
-                <div className='flex  items-center gap-5'>
-                    <Image src={'/github.png'} alt="gitHub" width={40} height={40}></Image>
-                    <h2 className='text-lg'>Connect Github & Add Repository</h2>
+            <div className='flex mt-6 justify-between items-center p-5 border rounded-2xl bg-card'>
+                <div className='flex items-center gap-4'>
+                    <div className='flex h-11 w-11 items-center justify-center rounded-xl bg-accent'>
+                        <Github className='h-5 w-5 text-primary' />
+                    </div>
+                    <div>
+                        <h2 className='font-medium text-foreground'>Connect GitHub &amp; add a repository</h2>
+                        <p className='text-sm text-muted-foreground mt-0.5'>Pick a repo to generate and run AI test cases against.</p>
+                    </div>
                 </div>
                 <div>
-                    <></>
-                    {!token ? <Button onClick={OnAddrepo}>Setup</Button>
-                        : <RepoDialog setRefreshPage={(refresh: boolean) => GetUserAddedRepoList()} />}
+                    {!token ? <Button onClick={OnAddrepo} className='gap-2'><Github className='h-4 w-4' />Connect GitHub</Button>
+                        : <RepoDialog setRefreshPage={() => GetUserAddedRepoList()} />}
                 </div>
 
-            </Card>
-            {!userRepoList ?
-                <Card className='mt-10 '>
-                    <CardContent>
-                        <EmptyWorkspace />
-
-                    </CardContent>
-                </Card>
-                : <UserRepoList repoList={userRepoList} setReload={() => GetUserAddedRepoList()} />}
+            </div>
+            {userRepoList !== null && userRepoList.length === 0 ?
+                <div className='mt-10 border rounded-2xl bg-card'>
+                    <EmptyWorkspace hasToken={!!token} onConnectGithub={OnAddrepo} setRefreshPage={() => GetUserAddedRepoList()} />
+                </div>
+                : userRepoList && <UserRepoList repoList={userRepoList} setReload={() => GetUserAddedRepoList()} />}
         </div>
     )
 }

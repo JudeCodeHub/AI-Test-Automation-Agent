@@ -2,7 +2,7 @@
 
 import { memo } from "react"
 import { motion, useReducedMotion } from "framer-motion"
-import { CreditCard, Database, Github, KeyRound, MonitorPlay, Sparkles } from "lucide-react"
+import { BarChart3, Coins, Github, MonitorPlay, Settings2, Sparkles } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 
 type Node = {
@@ -19,16 +19,16 @@ const nodes: Node[] = [
   { icon: Github, name: "GitHub", caption: "Connect a repo", x: 50, y: 8, floatDelay: 0 },
   { icon: Sparkles, name: "Gemini", caption: "Drafts test cases", x: 86, y: 29, floatDelay: 0.3 },
   { icon: MonitorPlay, name: "Browserbase", caption: "Runs them live", x: 86, y: 71, floatDelay: 0.6 },
-  { icon: KeyRound, name: "Clerk", caption: "Handles auth", x: 50, y: 92, floatDelay: 0.9 },
-  { icon: Database, name: "Neon", caption: "Stores your data", x: 14, y: 71, floatDelay: 1.2 },
-  { icon: CreditCard, name: "Stripe", caption: "Billing, later", x: 14, y: 29, floatDelay: 1.5 },
+  { icon: Settings2, name: "Editable cases", caption: "Adjust routes & results", x: 50, y: 92, floatDelay: 0.9 },
+  { icon: Coins, name: "Usage credits", caption: "1,000 free to start", x: 14, y: 71, floatDelay: 1.2 },
+  { icon: BarChart3, name: "Live analytics", caption: "Pass/fail per run", x: 14, y: 29, floatDelay: 1.5 },
 ]
 
 function OrbitalMap() {
   const reduceMotion = useReducedMotion()
 
   return (
-    <div className="relative mx-auto aspect-square w-full max-w-md">
+    <div className="relative mx-auto aspect-square w-full max-w-sm">
       {/* Orbit rings */}
       <div className="absolute inset-[8%] rounded-full border border-(--landing-border)" />
       <div className="absolute inset-[26%] rounded-full border border-dashed border-(--landing-border)" />

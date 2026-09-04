@@ -40,7 +40,7 @@ export default function Hero() {
         style={{ background: "radial-gradient(circle, var(--landing-accent-soft), transparent 70%)" }}
       />
 
-      <div className="relative max-w-7xl mx-auto px-6 pt-16 pb-20 lg:pt-24">
+      <div className="relative max-w-7xl mx-auto px-6 pt-16 pb-24 lg:pt-24 lg:pb-32">
         <div className="grid lg:grid-cols-[1.2fr_1fr] gap-12 items-center">
           <div>
             <Reveal>

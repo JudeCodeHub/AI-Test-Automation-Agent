@@ -1,4 +1,4 @@
-import { varchar, integer, jsonb, pgTable, serial, text, timestamp, } from "drizzle-orm/pg-core";
+import { varchar, integer, jsonb, pgTable, serial, text, timestamp, unique, } from "drizzle-orm/pg-core";
 
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
@@ -22,7 +22,9 @@ export const repositories = pgTable("repositories", {
   defaultBranch: text("default_branch"),
   targetDomain: varchar("target_domain").default('http://localhost:3000/'),
   globalInstructions: text("global_instructions"),
-});
+}, (table) => [
+  unique("repositories_user_repo_unique").on(table.userId, table.repoId),
+]);
 
 export const TestCasesTable = pgTable("test_cases", {
   id: serial("id").primaryKey(),
