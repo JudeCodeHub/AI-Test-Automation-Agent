@@ -6,7 +6,7 @@ import { CheckCircle2, Clock, Loader2, Play, RefreshCw, XCircle } from 'lucide-r
 import { Button } from '../ui/button'
 import TestCaseSettingDialog from './TestCaseSettingDialog';
 import RunResultDialog from './RunResultDialog';
-import axios from 'axios';
+import TestExecutionModal from './TestExecutionModal';
 
 type Props = {
   testCases: TestCase[]
@@ -18,9 +18,7 @@ type Props = {
 export default function TestCaseList({ testCases, setTestCases, targetDomain, onReload }: Props) {
 
   const [selectedTestCases, setSelectedTestCases] = useState<TestCase[]>([])
-  const [running, setRunning] = useState(false)
-  // Screenshots only live for the duration of this session - they aren't persisted server-side.
-  const [screenshots, setScreenshots] = useState<Record<number, string>>({})
+  const [showExecutionModal, setShowExecutionModal] = useState(false)
 
   const handleSelectedTestCase = (checked: boolean | "indeterminate" | string, testCase: TestCase) => {
     if (checked) {
@@ -30,49 +28,9 @@ export default function TestCaseList({ testCases, setTestCases, targetDomain, on
     }
   }
 
-  const patchTestCase = (id: number, patch: Partial<TestCase>) => {
-    setTestCases((prev) => prev.map((tc) => (tc.id === id ? { ...tc, ...patch } : tc)))
-  }
-
-  const runTestCase = async (testCase: TestCase) => {
-    patchTestCase(testCase.id, { status: 'running' })
-    try {
-      const result = await axios.post('/api/test-cases/run', {
-        testCaseId: testCase.id,
-        targetDomain,
-      })
-      const { status, lastRunAssertions, screenshot, durationMs, sessionReplayUrl } = {
-        status: result.data.status,
-        lastRunAssertions: result.data.assertionResults,
-        screenshot: result.data.screenshot,
-        durationMs: result.data.durationMs,
-        sessionReplayUrl: result.data.sessionReplayUrl,
-      }
-      patchTestCase(testCase.id, {
-        status,
-        lastRunAssertions,
-        lastRunDurationMs: durationMs,
-        lastRunAt: new Date().toISOString(),
-        lastRunSessionId: sessionReplayUrl?.split('/').pop() ?? testCase.lastRunSessionId,
-      })
-      if (screenshot) {
-        setScreenshots((prev) => ({ ...prev, [testCase.id]: screenshot }))
-      }
-    } catch (error) {
-      console.error('Run test case error:', error)
-      patchTestCase(testCase.id, { status: 'failed' })
-    }
-  }
-
-  const handleRunSelected = async () => {
-    setRunning(true)
-    try {
-      for (const testCase of selectedTestCases) {
-        await runTestCase(testCase)
-      }
-    } finally {
-      setRunning(false)
-    }
+  const handleCloseExecutionModal = () => {
+    setShowExecutionModal(false)
+    onReload(testCases[0]?.repoId)
   }
 
   const StatusBadge = ({ testCase }: { testCase: TestCase }) => {
@@ -85,14 +43,14 @@ export default function TestCaseList({ testCases, setTestCases, targetDomain, on
         return <Badge className='w-24 justify-center gap-1 bg-green-600 hover:bg-green-600/80'><CheckCircle2 className='h-3 w-3' />Passed</Badge>
       }
       if (status === 'failed') {
-        return <Badge variant={'destructive'} className='w-24 justify-center gap-1'><XCircle className='h-3 w-3' />Failed</Badge>
+        return <Badge variant={'destructive'} className='w-24 justify-center gap-1 rounded-lg'><XCircle className='h-3 w-3' />Failed</Badge>
       }
-      return <Badge variant={'secondary'} className='w-24 justify-center gap-1'><Clock className='h-3 w-3' />Pending</Badge>
+      return <Badge variant={'secondary'} className='w-24 justify-center gap-1 rounded-lg'><Clock className='h-3 w-3' />Pending</Badge>
     })()
 
     if (status === 'passed' || status === 'failed') {
       return (
-        <RunResultDialog testCase={testCase} screenshot={screenshots[testCase.id]}>
+        <RunResultDialog testCase={testCase}>
           <button type='button' className='cursor-pointer'>{content}</button>
         </RunResultDialog>
       )
@@ -130,14 +88,21 @@ export default function TestCaseList({ testCases, setTestCases, targetDomain, on
         <div className='p-4 flex items-center justify-between bg-gray-100'>
           <h2 className='font-medium text-gray-950'>Run Selected Test Cases</h2>
           <Button
-            disabled={selectedTestCases.length === 0 || running || !targetDomain}
-            onClick={handleRunSelected}
+            disabled={selectedTestCases.length === 0 || !targetDomain}
+            onClick={() => setShowExecutionModal(true)}
           >
-            {running ? <Loader2 className='h-4 w-4 mr-2 animate-spin' /> : <Play className='h-4 w-4 mr-2' />}
+            <Play className='h-4 w-4 mr-2' />
             Run
           </Button>
         </div>
       </div>
+
+      <TestExecutionModal
+        isOpen={showExecutionModal}
+        onClose={handleCloseExecutionModal}
+        testCases={selectedTestCases}
+        targetDomain={targetDomain}
+      />
     </div>
   )
 }

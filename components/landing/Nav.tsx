@@ -6,12 +6,6 @@ import { useEffect, useState } from "react"
 import { Show } from "@clerk/nextjs"
 import { Button } from "@/components/ui/button"
 
-const links = [
-  { href: "#how-it-works", label: "How it works" },
-  { href: "#features", label: "Features" },
-  { href: "#pricing", label: "Pricing" },
-]
-
 export default function Nav() {
   const [scrolled, setScrolled] = useState(false)
 
@@ -37,18 +31,6 @@ export default function Nav() {
           </div>
           <span className="text-base font-semibold tracking-tight text-(--landing-ink)">AI Test Agent</span>
         </Link>
-
-        <nav aria-label="Section" className="hidden md:flex items-center gap-8">
-          {links.map((link) => (
-            <a
-              key={link.href}
-              href={link.href}
-              className="text-sm font-medium text-(--landing-ink-muted) hover:text-(--landing-ink) transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--landing-accent) rounded-sm"
-            >
-              {link.label}
-            </a>
-          ))}
-        </nav>
 
         <div className="flex items-center gap-2">
           <Show

@@ -57,25 +57,28 @@
 }
 
 :root {
-  --background: hsl(0 0% 100%);
-  --foreground: hsl(240 10% 3.9%);
-  --card: hsl(0 0% 100%);
-  --card-foreground: hsl(240 10% 3.9%);
-  --popover: hsl(0 0% 100%);
-  --popover-foreground: hsl(240 10% 3.9%);
+  /* Warm neutrals (matching the landing page's palette) instead of the
+     default shadcn cool-gray zinc scale, so the authed app and the
+     marketing site read as the same product. */
+  --background: oklch(0.985 0.006 110);
+  --foreground: oklch(0.24 0.015 260);
+  --card: oklch(0.995 0.004 110);
+  --card-foreground: oklch(0.24 0.015 260);
+  --popover: oklch(0.995 0.004 110);
+  --popover-foreground: oklch(0.24 0.015 260);
   --primary: oklch(0.6294 0.1216 131.94);
   --primary-foreground: hsl(0 0% 98%);
-  --secondary: hsl(240 4.8% 95.9%);
-  --secondary-foreground: hsl(240 5.9% 10%);
-  --muted: hsl(240 4.8% 95.9%);
-  --muted-foreground: hsl(240 3.8% 46.1%);
-  --accent: hsl(240 4.8% 95.9%);
-  --accent-foreground: hsl(240 5.9% 10%);
+  --secondary: oklch(0.955 0.008 100);
+  --secondary-foreground: oklch(0.24 0.015 260);
+  --muted: oklch(0.955 0.008 100);
+  --muted-foreground: oklch(0.5 0.015 260);
+  --accent: oklch(0.94 0.045 135);
+  --accent-foreground: oklch(0.24 0.015 260);
   --destructive: hsl(0 84.2% 60.2%);
   --destructive-foreground: hsl(0 0% 98%);
-  --border: hsl(240 5.9% 90%);
-  --input: hsl(240 5.9% 90%);
-  --ring: hsl(240 10% 3.9%);
+  --border: oklch(0.91 0.012 120);
+  --input: oklch(0.91 0.012 120);
+  --ring: oklch(0.24 0.015 260);
   --radius: 0.5rem;
 }
 
@@ -133,4 +136,28 @@
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
+}
+
+/* Reusable: hide scrollbar chrome on any element while keeping it scrollable. */
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+/* Hide the scrollbar chrome on the landing page only - scrolling itself stays enabled. */
+html:has(.landing-theme),
+body:has(.landing-theme) {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+html:has(.landing-theme)::-webkit-scrollbar,
+body:has(.landing-theme)::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
 }

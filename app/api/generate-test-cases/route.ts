@@ -13,8 +13,12 @@ const ALLOWED_EXTENSIONS = [
     ".jsx",
     ".ts",
     ".tsx",
+    ".mjs",
+    ".cjs",
     ".json",
     ".md",
+    ".html",
+    ".css",
 ];
 
 const IMPORTANT_FILES = [
@@ -59,11 +63,15 @@ function isUsefulFile(path: string) {
         path.endsWith(ext)
     );
 
-    const isImportantPath = IMPORTANT_FILES.some((item) =>
-        path.includes(item)
-    );
+    // Being inside a "well-known" folder is a priority signal (see getRepoTree's
+    // sort), not a hard requirement - otherwise repos that don't follow a
+    // Next.js-style layout (plain static sites, flat repos, etc.) never match
+    // anything and always report "no useful source files".
+    return !isIgnored && isAllowedExtension;
+}
 
-    return !isIgnored && isAllowedExtension && isImportantPath;
+function isImportantPath(path: string) {
+    return IMPORTANT_FILES.some((item) => path.includes(item));
 }
 
 async function getRepoTree({
@@ -96,6 +104,7 @@ async function getRepoTree({
     return data.tree
         .filter((item: any) => item.type === "blob")
         .filter((item: any) => isUsefulFile(item.path))
+        .sort((a: any, b: any) => Number(isImportantPath(b.path)) - Number(isImportantPath(a.path)))
         .slice(0, 25);
 }
 
@@ -239,6 +248,11 @@ Important rules:
 - Only use file paths that exist in the repository context.
 - Do not invent fake target files.
 - If route is unclear, infer from Next.js app/page structure.
+- targetRoute must be a concrete, navigable URL path a real browser can load right now.
+  Never output a raw route pattern or placeholder segment (e.g. "/report/:id",
+  "/user/[id]", "/post/{slug}") - a browser cannot navigate to a literal colon or
+  bracket segment. For a dynamic route, either pick a static route instead, or use a
+  plausible concrete example value in place of the placeholder (e.g. "/report/1").
 - Keep description short, only one line.
 - Return only valid JSON.
 `;

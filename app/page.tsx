@@ -4,6 +4,7 @@ import Hero from "@/components/landing/Hero";
 import HowItWorks from "@/components/landing/HowItWorks";
 import Features from "@/components/landing/Features";
 import Pricing from "@/components/landing/Pricing";
+import Footer from "@/components/landing/Footer";
 
 export const metadata: Metadata = {
   title: "AI Test Agent — AI test coverage for your GitHub repos",
@@ -27,6 +28,7 @@ export default function LandingPage() {
         <Features />
         <Pricing />
       </main>
+      <Footer />
     </div>
   );
 }

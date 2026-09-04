@@ -1,16 +1,29 @@
 import React from 'react'
 import Image from 'next/image'
 import { Button } from '../ui/button'
-import { Link } from 'lucide-react'
-function EmptyWorkspace() {
+import { Github } from 'lucide-react'
+import RepoDialog from './RepoDialog'
+
+type Props = {
+    hasToken: boolean
+    onConnectGithub: () => void
+    setRefreshPage: () => void
+}
+
+function EmptyWorkspace({ hasToken, onConnectGithub, setRefreshPage }: Props) {
     return (
-        <div className='flex flex-col mt-10 items-center justify-center'>
-            <Image src={'/folder.png'} alt="Empty Workspace" width={70} height={70} />
-            <h2 className='font-medium text-2xl mt-5 mb-4 '>No Repository Connected</h2>
-            <p className='text-center mx-10 '>Connect your repo and add a repository to generate and run test cases </p>
+        <div className='flex flex-col py-16 px-6 items-center justify-center text-center'>
+            <div className='flex h-16 w-16 items-center justify-center rounded-2xl bg-accent'>
+                <Image src={'/folder.png'} alt="" width={32} height={32} aria-hidden="true" />
+            </div>
+            <h2 className='font-semibold text-xl mt-5 text-foreground'>No repository connected</h2>
+            <p className='text-muted-foreground mt-2 max-w-sm'>Connect a repository to start generating and running AI test cases.</p>
 
-
-            <Button className='mt-5 '> <Link className='w-4 h-4 mr-2'/> Connect Repo</Button>
+            <div className='mt-6'>
+                {hasToken
+                    ? <RepoDialog setRefreshPage={setRefreshPage} />
+                    : <Button onClick={onConnectGithub} className='gap-2'><Github className='h-4 w-4' />Connect Repo</Button>}
+            </div>
         </div>
     )
 }

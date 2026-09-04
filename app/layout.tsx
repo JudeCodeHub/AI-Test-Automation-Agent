@@ -21,7 +21,26 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <ClerkProvider>
+    <ClerkProvider
+      appearance={{
+        variables: {
+          colorPrimary: "var(--primary)",
+          colorBackground: "var(--background)",
+          colorText: "var(--foreground)",
+          colorTextSecondary: "var(--muted-foreground)",
+          colorInputBackground: "var(--background)",
+          colorInputText: "var(--foreground)",
+          colorNeutral: "var(--border)",
+          borderRadius: "var(--radius)",
+          fontFamily: "var(--font-jakarta), ui-sans-serif, system-ui, sans-serif",
+        },
+        elements: {
+          card: "shadow-none border border-(--border)",
+          formButtonPrimary: "bg-primary hover:bg-primary/90 text-primary-foreground",
+          footerActionLink: "text-primary hover:text-primary/90",
+        },
+      }}
+    >
       <html lang="en" className={`scroll-smooth ${jakarta.variable}`}>
         <body style={{ margin: 0, padding: 0 }} className="font-sans">
           <Provider>
