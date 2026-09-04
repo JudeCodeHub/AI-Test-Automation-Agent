@@ -2,6 +2,10 @@ import { NextResponse } from 'next/server';
 import { stripe } from '@/lib/stripe';
 
 export async function POST(req: Request) {
+  if (!stripe) {
+    return NextResponse.json({ error: 'Billing is not configured yet' }, { status: 503 });
+  }
+
   const body = await req.text();
   const sig = req.headers.get('stripe-signature') || '';
 

@@ -3,6 +3,10 @@ import { stripe } from '@/lib/stripe';
 
 export async function POST(req: Request) {
   try {
+    if (!stripe) {
+      return NextResponse.json({ error: 'Billing is not configured yet' }, { status: 503 });
+    }
+
     const { priceId } = await req.json();
 
     if (!priceId) {

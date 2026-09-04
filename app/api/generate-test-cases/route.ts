@@ -3,6 +3,10 @@ import { GoogleGenAI, Type } from '@google/genai';
 import { db } from '@/db';
 import { TestCasesTable, users } from '@/db/schema';
 import { cookies } from 'next/headers';
+
+// Fetching up to 25 repo files from GitHub plus a Gemini call can take longer
+// than a serverless default (10s on Vercel Hobby).
+export const maxDuration = 60;
 import { and, eq, gte, sql } from 'drizzle-orm';
 
 const ai = new GoogleGenAI({
