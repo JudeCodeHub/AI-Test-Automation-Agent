@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { chromium } from "playwright-core";
 import { db } from "@/db";
 import { TestCasesTable, users } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { and, eq, gte, sql } from "drizzle-orm";
 import { browserbase, BROWSERBASE_PROJECT_ID, sessionReplayUrl } from "@/lib/browserbase";
 import { extractPageSummary, generateScript, runAssertions, runStepWithRetry, Script, scriptToPseudocode } from "@/lib/testRunner";
 
@@ -100,23 +100,36 @@ export async function POST(req: NextRequest) {
     const durationMs = Date.now() - startedAt;
     logs.push(`[SYSTEM] Run ${passed ? "PASSED" : "FAILED"} in ${durationMs}ms.`);
 
-    await db
-      .update(TestCasesTable)
-      .set({
-        status: passed ? "passed" : "failed",
-        browserbaseScript: JSON.stringify(script),
-        lastRunAt: new Date(),
-        lastRunSessionId: session.id,
-        lastRunDurationMs: durationMs,
-        lastRunAssertions: assertionResults,
-      })
-      .where(eq(TestCasesTable.id, testCaseId));
+    // Persist the run result and deduct credits atomically - see the same
+    // note in generate-test-cases/route.ts. db.batch() is neon-http's
+    // equivalent of a transaction (db.transaction() throws on this driver);
+    // the credit decrement is done in SQL with a `credits >= RUN_COST` guard
+    // so a concurrent run can't race the balance below zero.
+    const [, updatedUsers] = await db.batch([
+      db
+        .update(TestCasesTable)
+        .set({
+          status: passed ? "passed" : "failed",
+          browserbaseScript: JSON.stringify(script),
+          lastRunAt: new Date(),
+          lastRunSessionId: session.id,
+          lastRunDurationMs: durationMs,
+          lastRunAssertions: assertionResults,
+        })
+        .where(eq(TestCasesTable.id, testCaseId)),
+      db
+        .update(users)
+        .set({ credits: sql`${users.credits} - ${RUN_COST}` })
+        .where(and(eq(users.id, user.id), gte(users.credits, RUN_COST)))
+        .returning(),
+    ]);
 
-    const [updatedUser] = await db
-      .update(users)
-      .set({ credits: user.credits - RUN_COST })
-      .where(eq(users.id, user.id))
-      .returning();
+    if (updatedUsers.length === 0) {
+      return NextResponse.json(
+        { error: `Not enough credits - running a test case costs ${RUN_COST} credits.`, logs },
+        { status: 400 }
+      );
+    }
 
     return NextResponse.json({
       status: passed ? "passed" : "failed",
@@ -126,7 +139,7 @@ export async function POST(req: NextRequest) {
       sessionUrl: sessionReplayUrl(session.id),
       durationMs,
       screenshot,
-      credits: updatedUser.credits,
+      credits: updatedUsers[0].credits,
     });
   } catch (error: any) {
     logs.push(`[SYSTEM ERROR] ${error.message}`);

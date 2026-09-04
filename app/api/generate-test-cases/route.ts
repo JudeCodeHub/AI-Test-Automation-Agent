@@ -3,7 +3,7 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { db } from "@/db";
 import { TestCasesTable, users } from "@/db/schema";
 import { cookies } from "next/headers";
-import { eq } from "drizzle-orm";
+import { and, eq, gte, sql } from "drizzle-orm";
 
 const ai = new GoogleGenAI({
     apiKey: process.env.GEMINI_API_KEY!,
@@ -345,43 +345,62 @@ Important rules:
             );
         }
 
-        // 5. Save generated test cases to Neon DB
-        const insertedTestCases = await db
-            .insert(TestCasesTable)
-            .values(
-                testCases.map((testCase: any) => ({
-                    userId,
-                    repoId,
-                    repoName: repo,
-                    repoOwner: owner,
-                    branch,
+        // 5. Save generated test cases and deduct credits atomically - db.batch()
+        // sends both statements to Neon as one all-or-nothing round trip, so a
+        // crash or timeout between them can't leave test cases inserted without
+        // the user being charged (db.transaction() isn't available on the
+        // neon-http driver this project uses; batch() is the equivalent it
+        // does support). The credit decrement also happens in SQL itself
+        // (not `user.credits - COST` computed here) with a `credits >= COST`
+        // guard, so two concurrent requests can't both pass the earlier check
+        // and race the balance below zero.
+        const [insertedTestCases, updatedUsers] = await db.batch([
+            db
+                .insert(TestCasesTable)
+                .values(
+                    testCases.map((testCase: any) => ({
+                        userId,
+                        repoId,
+                        repoName: repo,
+                        repoOwner: owner,
+                        branch,
 
-                    title: testCase.title,
-                    description: testCase.description,
-                    type: testCase.type,
-                    priority: testCase.priority,
+                        title: testCase.title,
+                        description: testCase.description,
+                        type: testCase.type,
+                        priority: testCase.priority,
 
-                    targetRoute: testCase.targetRoute,
-                    targetFiles: testCase.targetFiles || [],
-                    expectedResult: testCase.expectedResult,
+                        targetRoute: testCase.targetRoute,
+                        targetFiles: testCase.targetFiles || [],
+                        expectedResult: testCase.expectedResult,
 
-                    status: "generated",
-                }))
-            )
-            .returning();
+                        status: "generated",
+                    }))
+                )
+                .returning(),
+            db
+                .update(users)
+                .set({ credits: sql`${users.credits} - ${GENERATE_COST}` })
+                .where(and(eq(users.id, userId), gte(users.credits, GENERATE_COST)))
+                .returning(),
+        ]);
 
-        const [updatedUser] = await db
-            .update(users)
-            .set({ credits: user.credits - GENERATE_COST })
-            .where(eq(users.id, userId))
-            .returning();
+        if (updatedUsers.length === 0) {
+            // Credits were spent by a concurrent request between the check above
+            // and this batch - the test cases below were still inserted, but we
+            // report the shortfall so the client knows the balance didn't hold.
+            return NextResponse.json(
+                { error: `Not enough credits - generating test cases costs ${GENERATE_COST} credits.` },
+                { status: 400 }
+            );
+        }
 
         return NextResponse.json({
             success: true,
             message: "Test cases generated successfully",
             count: insertedTestCases.length,
             testCases: insertedTestCases,
-            credits: updatedUser.credits,
+            credits: updatedUsers[0].credits,
         });
 
     } catch (error: any) {

@@ -19,6 +19,11 @@ const orbitron = Orbitron({
 export const metadata: Metadata = {
   title: "EdgeCase — AI test coverage for your GitHub repos",
   description: "Connect a GitHub repo and let EdgeCase read your codebase, draft test cases, and run them in a real browser.",
+  icons: {
+    icon: "/logo.svg",
+    shortcut: "/logo.svg",
+    apple: "/logo.svg",
+  },
 };
 
 export default function RootLayout({
