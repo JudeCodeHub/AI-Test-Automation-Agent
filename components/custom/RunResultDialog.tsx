@@ -8,8 +8,9 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { Badge } from '@/components/ui/badge'
-import { CheckCircle2, ExternalLink, XCircle } from 'lucide-react'
+import { CheckCircle2, XCircle } from 'lucide-react'
 import { TestCase } from './UserRepoList'
+import RecordingPlayer from './RecordingPlayer'
 
 type Props = {
   testCase: TestCase
@@ -23,10 +24,6 @@ function formatDuration(ms: number | null) {
 }
 
 export default function RunResultDialog({ testCase, screenshot, children }: Props) {
-  const sessionReplayUrl = testCase.lastRunSessionId
-    ? `https://browserbase.com/sessions/${testCase.lastRunSessionId}`
-    : null
-
   return (
     <Dialog>
       <DialogTrigger asChild>{children}</DialogTrigger>
@@ -82,19 +79,15 @@ export default function RunResultDialog({ testCase, screenshot, children }: Prop
           )}
           {!screenshot && testCase.lastRunSessionId && (
             <p className='text-xs text-gray-500'>
-              Screenshot only available right after a run - view the full session replay instead.
+              Screenshot only available right after a run - watch the recording below instead.
             </p>
           )}
 
-          {sessionReplayUrl && (
-            <a
-              href={sessionReplayUrl}
-              target='_blank'
-              rel='noopener noreferrer'
-              className='inline-flex items-center gap-1.5 text-sm text-primary hover:underline'
-            >
-              View Session Replay <ExternalLink className='h-3.5 w-3.5' />
-            </a>
+          {testCase.lastRunSessionId && (
+            <div>
+              <h3 className='text-xs font-medium text-gray-500 mb-2'>RECORDING</h3>
+              <RecordingPlayer sessionId={testCase.lastRunSessionId} />
+            </div>
           )}
         </div>
       </DialogContent>

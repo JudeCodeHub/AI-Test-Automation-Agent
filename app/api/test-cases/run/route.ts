@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { chromium } from "playwright-core";
 import { db } from "@/db";
-import { TestCasesTable } from "@/db/schema";
+import { TestCasesTable, users } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { browserbase, BROWSERBASE_PROJECT_ID, sessionReplayUrl } from "@/lib/browserbase";
 import { extractPageSummary, generateScript, runAssertions, runStepWithRetry, Script, scriptToPseudocode } from "@/lib/testRunner";
+
+const RUN_COST = 10;
 
 export async function POST(req: NextRequest) {
   const startedAt = Date.now();
@@ -34,6 +36,15 @@ export async function POST(req: NextRequest) {
 
     if (testCase.status === "running") {
       return NextResponse.json({ error: "This test case is already running" }, { status: 409 });
+    }
+
+    const [user] = await db.select().from(users).where(eq(users.id, Number(testCase.userId)));
+
+    if (!user || user.credits < RUN_COST) {
+      return NextResponse.json(
+        { error: `Not enough credits - running a test case costs ${RUN_COST} credits.` },
+        { status: 400 }
+      );
     }
 
     await db.update(TestCasesTable).set({ status: "running" }).where(eq(TestCasesTable.id, testCaseId));
@@ -101,6 +112,12 @@ export async function POST(req: NextRequest) {
       })
       .where(eq(TestCasesTable.id, testCaseId));
 
+    const [updatedUser] = await db
+      .update(users)
+      .set({ credits: user.credits - RUN_COST })
+      .where(eq(users.id, user.id))
+      .returning();
+
     return NextResponse.json({
       status: passed ? "passed" : "failed",
       logs,
@@ -109,6 +126,7 @@ export async function POST(req: NextRequest) {
       sessionUrl: sessionReplayUrl(session.id),
       durationMs,
       screenshot,
+      credits: updatedUser.credits,
     });
   } catch (error: any) {
     logs.push(`[SYSTEM ERROR] ${error.message}`);
